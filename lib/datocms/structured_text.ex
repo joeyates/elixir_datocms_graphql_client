@@ -222,7 +222,7 @@ defmodule DatoCMS.StructuredText do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
     _ ->
-      ["<code>", code, "</code>"]
+      ["<pre>", code, "</pre>"]
     end
   end
 
