@@ -68,7 +68,9 @@ defmodule DatoCMS.GraphQLClient.Backends.StandardClient do
     end
   end
 
-  def fetch(key, query_body, params \\ %{}, options \\ []) do
+  def fetch(key, query_body, params \\ %{}, options \\ [])
+
+  def fetch(key, query_body, params, options) when is_atom(key) do
     keyed = fetch_query(key, query_body)
     result = query(keyed, params, options)
 
@@ -76,6 +78,10 @@ defmodule DatoCMS.GraphQLClient.Backends.StandardClient do
       {:ok, data} -> {:ok, data[key]}
       other -> other
     end
+  end
+
+  def fetch(_key, _query_body, _params, _options) do
+    raise "#{__MODULE__}.fetch/4 - first 'key' parameter must be an Atom"
   end
 
   def fetch_query(key, query), do: "query { #{key} #{query} }"
