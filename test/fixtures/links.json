@@ -16,6 +16,22 @@
                   "value": "Link"
                 }
               ]
+            },
+            {
+              "url": "https://open-in-new-window.com",
+              "type": "link",
+              "children": [
+                {
+                  "type": "span",
+                  "value": "Link"
+                }
+              ],
+              "meta": [
+                {
+                  "id": "target",
+                  "value": "_blank"
+                }
+              ]
             }
           ]
         }

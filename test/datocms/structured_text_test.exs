@@ -213,8 +213,16 @@ defmodule DatoCMS.StructuredTextTest do
   test "links", context do
     result = to_html(context.structured_text)
 
-    expected = "<p><a href=\"https://example.com\">Link</a></p>"
-    assert(result == expected)
+    expected = ~s(<p><a href="https://example.com">Link</a>)
+    assert(String.contains?(result, expected))
+  end
+
+  @tag structured_text: json_fixture!("links")
+  test "links with 'open in new window' attribute", context do
+    result = to_html(context.structured_text)
+
+    expected = ~s(<a href="https://open-in-new-window.com" target="_blank">Link</a>)
+    assert(String.contains?(result, expected))
   end
 
   @tag structured_text: json_fixture!("links")
@@ -222,8 +230,8 @@ defmodule DatoCMS.StructuredTextTest do
     options = %{renderers: %{render_link: &render_custom_link/3}}
     result = to_html(context.structured_text, options)
 
-    expected = ~s(<p><a href="https://example.com" class="button">Link</a></p>)
-    assert(result == expected)
+    expected = ~s(<a href="https://example.com" class="button">Link</a>)
+    assert(String.contains?(result, expected))
   end
 
   @tag structured_text: json_fixture!("text-styles")

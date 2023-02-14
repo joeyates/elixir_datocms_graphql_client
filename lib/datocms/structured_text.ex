@@ -288,8 +288,9 @@ defmodule DatoCMS.StructuredText do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
       _ ->
+        meta = render_link_meta(node, dast, options)
         inner = Enum.flat_map(node.children, &(render(&1, dast, options)))
-        [~s(<a href="#{node.url}">)] ++ inner ++ ["</a>"]
+        [~s(<a href="#{node.url}"#{meta}>)] ++ inner ++ ["</a>"]
     end
   end
 
@@ -381,6 +382,18 @@ defmodule DatoCMS.StructuredText do
         raise CustomRenderersError, message: message
     end
   end
+
+  def render_link_meta(%{meta: meta}, _dast, _options) do
+    items =
+      meta
+      |> Enum.map(fn entry ->
+        ~s(#{entry.id}="#{entry.value}")
+      end)
+
+    " " <> Enum.join(items, " ")
+  end
+
+  def render_link_meta(_node, _dast, _options), do: ""
 
   defp renderer(%{renderers: renderers}, name) do
     renderer = renderers[name]
