@@ -4,14 +4,14 @@ defmodule DatoCMS.GraphQLClient.QueryMonitor do
 
   alias DatoCMS.GraphQLClient.Backends.StandardClient, as: Client
 
-  @registry :datocms_live_update_query_registry
+  @datocms_live_update_query_registry :datocms_live_update_query_registry
 
-  def registry_name, do: @registry
+  def registry_name, do: @datocms_live_update_query_registry
 
   def subscribe!(query, params \\ %{}, callback) do
     signature = signature(query, params)
     {:ok, body} =
-      case Registry.lookup(@registry, signature) do
+      case Registry.lookup(@datocms_live_update_query_registry, signature) do
         [{_monitor, body}] ->
           {:ok, body}
         [] ->
@@ -47,14 +47,14 @@ defmodule DatoCMS.GraphQLClient.QueryMonitor do
     body = parsed.response.data
 
     if state[:received] do
-      Registry.update_value(@registry, state[:signature], fn _val -> body end)
+      Registry.update_value(@datocms_live_update_query_registry, state[:signature], fn _val -> body end)
 
       # Allow our client to act on the change
       state[:callback].()
 
       {:noreply, state}
     else
-      Registry.register(@registry, state[:signature], body)
+      Registry.register(@datocms_live_update_query_registry, state[:signature], body)
 
       # The Task in new/4 is waiting on us.
       # Send the body to the original subscribe!/3
