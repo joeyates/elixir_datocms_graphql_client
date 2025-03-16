@@ -4,7 +4,7 @@ defmodule DatoCMS.GraphqlClient.MixProject do
   def project do
     [
       app: :datocms_graphql_client,
-      version: "0.17.0",
+      version: "0.17.1",
       elixir: "~> 1.9",
       description: "Helpers for DatoCMS GraphQL access",
       package: package(),

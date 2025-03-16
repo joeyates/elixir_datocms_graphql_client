@@ -19,7 +19,7 @@ defmodule DatoCMS.GraphQLClient.Backends.StandardClient do
       Neuron.Config.set(headers: [authorization: "Bearer #{api_key}"])
     end
 
-    Neuron.Config.set(connection_opts: [timeout: :infinity, recv_timeout: :infinity])
+    Neuron.Config.set(connection_opts: [timeout: 60_000, recv_timeout: 60_000])
     Neuron.Config.set(parse_options: [keys: :atoms])
   end
 
