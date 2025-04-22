@@ -382,8 +382,13 @@ defmodule DatoCMS.StructuredText do
 
         _ ->
           message = """
-          Custom renderers for links to records take 4 parameters,
-          you passed a function with #{arity} parameters
+          Custom renderers for links to records take 4 parameters:
+          * the linked item,
+          * the node that links to it,
+          * the dast,
+          * the options.
+
+          You passed a function with #{arity} parameters
           as `render_link_to_record`.
           """
 
