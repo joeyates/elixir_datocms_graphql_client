@@ -152,20 +152,25 @@ defmodule DatoCMS.StructuredText do
   """
   @spec to_html(map(), map() | nil) :: String.t()
   def to_html(dast, options \\ %{})
+
   def to_html(
-    %{value: %{schema: "dast", document: document}} = dast, options
-  ) do
+        %{value: %{schema: "dast", document: document}} = dast,
+        options
+      ) do
     render(document, dast, options)
     |> Enum.join("")
   end
+
   def to_html(%{schema: "dast", document: _document} = value, options) do
-    IO.warn """
+    IO.warn("""
     The value you supplied to `DatoCMS.StructuredText.to_html/2` is incorrect.
     Please supply the *whole* value for the StructuredText field in the response
     not just the `value` part.
-    """
+    """)
+
     to_html(%{value: value}, options)
   end
+
   def to_html(%{"value" => _value}, _options) do
     message = """
     The StructuredText field value you have passed to
@@ -175,6 +180,7 @@ defmodule DatoCMS.StructuredText do
 
     raise ArgumentError.exception(message)
   end
+
   def to_html(data, _options) do
     message = """
     The value passed to `DatoCMS.StructuredText.to_html/2` is incorrect.
@@ -194,15 +200,17 @@ defmodule DatoCMS.StructuredText do
   end
 
   def render(%{type: "root"} = node, dast, options) do
-    Enum.flat_map(node.children, &(render(&1, dast, options)))
+    Enum.flat_map(node.children, &render(&1, dast, options))
   end
 
   def render(%{type: "blockquote"} = node, dast, options) do
     case renderer(options, :render_blockquote) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
-        caption = if Map.has_key?(node, :attribution) do
+        caption =
+          if Map.has_key?(node, :attribution) do
             ["<figcaption>— #{node.attribution}</figcaption>"]
           else
             []
@@ -210,7 +218,7 @@ defmodule DatoCMS.StructuredText do
 
         ["<figure>"] ++
           ["<blockquote>"] ++
-          Enum.flat_map(node.children, &(render(&1, dast, options))) ++
+          Enum.flat_map(node.children, &render(&1, dast, options)) ++
           ["</blockquote>"] ++
           caption ++
           ["</figure>"]
@@ -221,8 +229,9 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_code) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
-    _ ->
-      ["<pre>", code, "</pre>"]
+
+      _ ->
+        ["<pre>", code, "</pre>"]
     end
   end
 
@@ -230,13 +239,14 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_bulleted_list) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
         ["<ul>"] ++
           Enum.flat_map(
             node.children,
             fn list_item ->
               ["<li>"] ++
-                Enum.flat_map(list_item.children, &(render(&1, dast, options))) ++
+                Enum.flat_map(list_item.children, &render(&1, dast, options)) ++
                 ["</li>"]
             end
           ) ++
@@ -248,13 +258,14 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_numbered_list) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
         ["<ol>"] ++
           Enum.flat_map(
             node.children,
             fn list_item ->
               ["<li>"] ++
-                Enum.flat_map(list_item.children, &(render(&1, dast, options))) ++
+                Enum.flat_map(list_item.children, &render(&1, dast, options)) ++
                 ["</li>"]
             end
           ) ++
@@ -266,8 +277,9 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_paragraph) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
-        inner = Enum.flat_map(node.children, &(render(&1, dast, options)))
+        inner = Enum.flat_map(node.children, &render(&1, dast, options))
         ["<p>"] ++ inner ++ ["</p>"]
     end
   end
@@ -276,9 +288,10 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_heading) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
         tag = "h#{node.level}"
-        inner = Enum.flat_map(node.children, &(render(&1, dast, options)))
+        inner = Enum.flat_map(node.children, &render(&1, dast, options))
         ["<#{tag}>"] ++ inner ++ ["</#{tag}>"]
     end
   end
@@ -287,18 +300,21 @@ defmodule DatoCMS.StructuredText do
     case renderer(options, :render_link) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
         meta = render_link_meta(node, dast, options)
-        inner = Enum.flat_map(node.children, &(render(&1, dast, options)))
+        inner = Enum.flat_map(node.children, &render(&1, dast, options))
         [~s(<a href="#{node.url}"#{meta}>)] ++ inner ++ ["</a>"]
     end
   end
 
   def render(%{type: "span", marks: [mark | marks]} = node, dast, options) do
     renderer_key = :"render_#{mark}"
+
     case renderer(options, renderer_key) do
       {:ok, renderer} ->
         renderer.(node, dast, options) |> list()
+
       _ ->
         simplified = Map.put(node, :marks, marks)
         inner = render(simplified, dast, options)
@@ -315,18 +331,22 @@ defmodule DatoCMS.StructuredText do
     with {:ok, renderer} <- renderer(options, :render_inline_record),
          {:ok, item} <- linked_item(node, dast) do
       arity = arity(renderer)
+
       case arity do
         1 ->
           deprecation_warning(:render_inline_record, 1, 3)
           renderer.(item) |> list()
+
         3 ->
           renderer.(item, dast, options) |> list()
+
         _ ->
           message = """
           Custom renderers for inline records take 3 parameters,
           you passed a function with #{arity} parameters
           as `render_inline_record`.
           """
+
           raise CustomRenderersError, message: message
       end
     else
@@ -339,18 +359,22 @@ defmodule DatoCMS.StructuredText do
     with {:ok, renderer} <- renderer(options, :render_link_to_record),
          {:ok, item} <- linked_item(node, dast) do
       arity = arity(renderer)
+
       case arity do
         2 ->
           deprecation_warning(:render_link_to_record, 2, 4)
           renderer.(item, node) |> list()
+
         4 ->
           renderer.(item, node, dast, options) |> list()
+
         _ ->
           message = """
           Custom renderers for links to records take 4 parameters,
           you passed a function with #{arity} parameters
           as `render_link_to_record`.
           """
+
           raise CustomRenderersError, message: message
       end
     else
@@ -363,18 +387,22 @@ defmodule DatoCMS.StructuredText do
     with {:ok, renderer} <- renderer(options, :render_block),
          {:ok, item} <- block(node, dast) do
       arity = arity(renderer)
+
       case arity do
         1 ->
           deprecation_warning(:render_block, 1, 3)
           renderer.(item) |> list()
+
         3 ->
           renderer.(item, dast, options) |> list()
+
         _ ->
           message = """
           Custom renderers for blocks take 3 parameters,
           you passed a function with #{arity} parameters
           as `render_block`.
           """
+
           raise CustomRenderersError, message: message
       end
     else
@@ -397,6 +425,7 @@ defmodule DatoCMS.StructuredText do
 
   defp renderer(%{renderers: renderers}, name) do
     renderer = renderers[name]
+
     if renderer do
       {:ok, renderer}
     else
@@ -411,6 +440,7 @@ defmodule DatoCMS.StructuredText do
       }
     end
   end
+
   defp renderer(options, _name) do
     {
       :error,
@@ -424,6 +454,7 @@ defmodule DatoCMS.StructuredText do
 
   defp block(%{item: item_id} = node, %{blocks: blocks}) do
     item = Enum.find(blocks, &(&1.id == item_id))
+
     if item do
       {:ok, item}
     else
@@ -462,25 +493,27 @@ defmodule DatoCMS.StructuredText do
 
   defp linked_item(%{item: item_id} = node, %{links: links}) do
     item = Enum.find(links, &(&1.id == item_id))
+
     if item do
       {:ok, item}
     else
-    {
-      :error,
-      """
-      Linked item `#{item_id}` not found in `dast.links`.
+      {
+        :error,
+        """
+        Linked item `#{item_id}` not found in `dast.links`.
 
-      A node of type `#{node.type}` requires item #{node.item} to be present in the `dast`.
+        A node of type `#{node.type}` requires item #{item_id} to be present in the `dast`.
 
-      `node` contents:
-      #{inspect(node)}
+        `node` contents:
+        #{inspect(node)}
 
-      `links` contents:
-      #{inspect(links)}
-      """
-    }
+        `links` contents:
+        #{inspect(links)}
+        """
+      }
     end
   end
+
   defp linked_item(node, dast) do
     {
       :error,
@@ -504,11 +537,11 @@ defmodule DatoCMS.StructuredText do
   defp arity(fun), do: :erlang.fun_info(fun)[:arity]
 
   defp deprecation_warning(renderer, old, new) do
-    IO.warn """
+    IO.warn("""
     Passing custom renderers to `#{renderer}` with #{old} parameter#{if old > 1, do: "s"}
     to DatoCMS.StructuredText.to_html/2 is deprecated.
 
     Custom renderers for `#{renderer}` now take #{new} parameters.
-    """
+    """)
   end
 end
