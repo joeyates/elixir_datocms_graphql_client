@@ -60,16 +60,17 @@ defmodule DatoCMS.StructuredText do
 
   By default, the types are transformed as follows:
 
-  | type       | result                                |
-  |------------|---------------------------------------|
-  | root       | the rendered children                 |
-  | paragraph  | `<p>...</p>`                          |
-  | span       | the node value                        |
-  | heading    | `<hn>...</hn>` where `n` is the level |
-  | link       | `<a ...>...</a>`                      |
-  | block      | requires custom renderer (see below)  |
-  | inlineItem | requires custom renderer (see below)  |
-  | itemLink   | requires custom renderer (see below)  |
+  | type        | result                                |
+  |-------------|---------------------------------------|
+  | root        | the rendered children                 |
+  | paragraph   | `<p>...</p>`                          |
+  | span        | the node value                        |
+  | heading     | `<hn>...</hn>` where `n` is the level |
+  | link        | `<a ...>...</a>`                      |
+  | block       | requires custom renderer (see below)  |
+  | inlineBlock | requires custom renderer (see below)  |
+  | inlineItem  | requires custom renderer (see below)  |
+  | itemLink    | requires custom renderer (see below)  |
 
   Note that text styling is transformed as follows:
 
@@ -138,11 +139,12 @@ defmodule DatoCMS.StructuredText do
 
   ## Required Renderers
 
-  If your structured text includes blocks, inline items
+  If your structured text includes blocks, inline blocks, inline items
   or item links, you'll need to supply a custom renderer as it doesn't make sense
-  to have a default renerer isn these cases.
+  to have a default renderer in these cases.
 
   * `render_block/3` for blocks,
+  * `render_inline_block/3` for inline blocks,
   * `render_inline_record/3` for inline items,
   * `render_link_to_record/4` for item links.
 
@@ -327,6 +329,16 @@ defmodule DatoCMS.StructuredText do
     [node.value]
   end
 
+  def render(%{type: "inlineBlock"} = node, dast, options) do
+    with {:ok, renderer} <- renderer(options, :render_inline_block),
+         {:ok, block} <- inline_block(node, dast) do
+      list(renderer.(block, dast, options))
+    else
+      {:error, message} ->
+        raise CustomRenderersError, message: message
+    end
+  end
+
   def render(%{type: "inlineItem"} = node, dast, options) do
     with {:ok, renderer} <- renderer(options, :render_inline_record),
          {:ok, item} <- linked_item(node, dast) do
@@ -458,22 +470,23 @@ defmodule DatoCMS.StructuredText do
     if item do
       {:ok, item}
     else
-    {
-      :error,
-      """
-      Linked item `#{item_id}` not found in `dast.blocks`.
+      {
+        :error,
+        """
+        Linked item `#{item_id}` not found in `dast.blocks`.
 
-      A "block" node requires item #{node.item} to be present in `dast.blocks`.
+        A "block" node requires item #{item_id} to be present in `dast.blocks`.
 
-      `node` contents:
-      #{inspect(node)}
+        `node` contents:
+        #{inspect(node)}
 
-      `links` contents:
-      #{inspect(blocks)}
-      """
-    }
+        `links` contents:
+        #{inspect(blocks)}
+        """
+      }
     end
   end
+
   defp block(node, dast) do
     {
       :error,
@@ -481,6 +494,46 @@ defmodule DatoCMS.StructuredText do
       No `:blocks` supplied in dast.
 
       A "block" node requires `:blocks` to be present in `dast`.
+
+      `node` contents:
+      #{inspect(node)}
+
+      `dast` contents:
+      #{inspect(dast)}
+      """
+    }
+  end
+
+  defp inline_block(%{item: item_id} = node, %{inlineBlocks: inline_blocks}) do
+    block = Enum.find(inline_blocks, &(&1.id == item_id))
+
+    if block do
+      {:ok, block}
+    else
+      {
+        :error,
+        """
+        Inline block `#{item_id}` not found in `dast.inlineBlocks`.
+
+        A node of type `#{node.type}` requires item #{item_id} to be present in the `dast`.
+
+        `node` contents:
+        #{inspect(node)}
+
+        `links` contents:
+        #{inspect(inline_blocks)}
+        """
+      }
+    end
+  end
+
+  defp inline_block(node, dast) do
+    {
+      :error,
+      """
+      No `:inlineBlocks` supplied in dast.
+
+      A node of type `#{node.type}` requires `:inlineBlocks` to be present in the `dast`.
 
       `node` contents:
       #{inspect(node)}
